@@ -32,7 +32,7 @@ sub check_args {
     usage: $0 [ -- remote host ] [ --local interface ] [ --service service ]
 EOUSAGE
     die "Need remote"             unless $REMOTE;
-    die "Need local or service"   unless $Local || $SERVICE;
+    die "Need local or service"   unless $LOCAL || $SERVICE;
 }
 
 sub start_proxy {
@@ -42,7 +42,7 @@ sub start_proxy {
         Listen    => SOMAXCONN,
     );
     push @proxy_server_config, LocalPort => $SERVICE if $SERVICE;
-    push @proxy_server_config, LocalAddr => $Local   if $Local;
+    push @proxy_server_config, LocalAddr => $LOCAL   if $LOCAL;
     $proxy_server = IO::Socket::INET->new(@proxy_server_config)
                     or die "can't create proxy server: $@";
     print "[Proxy server on ", ($LOCAL || $SERVICE), " initialized.]\n";
@@ -53,7 +53,7 @@ sub service_clients {
         $local_client,
         $lc_info,
         $remote_server,
-        @re_config,
+        @rs_config,
         $rs_info,
         $kidpid,
     );
