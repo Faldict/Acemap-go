@@ -4,7 +4,7 @@ import (
     "log"
     "fmt"
     "net/http"
-    // "io"
+    "io"
     // "net/http/httputil"
     // "net/url"
 )
@@ -12,22 +12,31 @@ import (
 func main() {
     http.HandleFunc("/", Handler)
 
-    log.Fatal(http.ListenAndServe(":8080", nil))    
+    log.Fatal(http.ListenAndServe(":9090", nil))    
 }
 
 func Handler(w http.ResponseWriter, req *http.Request) {
     fmt.Printf("URL: %s\n", req.URL)
-    // client := &http.Client{}
-    // resq, err := http.NewRequest(req.Method, req.URL.String(), req.Body)
-    // if (err != nil) {
-    //     log.Fatal(err)
-    // }
+    fmt.Printf("RemoteAddr: %s\n", req.RemoteAddr)
+    fmt.Printf("RequestURI: %s\n", req.RequestURI)
 
-    // defer resq.Body.Close()
-    // rsp, err := client.Do(resq)
-    // if (err != nil) {
-    //     log.Fatal(err)
-    // }
-    // fmt.Printf("Status: %s\n", rsp.Status)
-    w.Write([]byte("Hello world!\n"))
+    // remove requesturi
+    resp, err := http.DefaultClient.Do(req)
+    defer resp.Body.Close()
+    if err != nil {
+        panic(err)
+    }
+
+    for k,v := range resp.Header {
+        for _, vv := range v {
+            w.Header().Add(k, vv)
+        }
+    }
+
+    w.WriteHeader(resp.StatusCode)
+    result, err := ioutil.ReadAll(resp.Body)
+    if err != nil && err != io.EOF {
+        panic(err)
+    }
+    w.Write(result)
 }
