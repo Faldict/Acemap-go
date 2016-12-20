@@ -5,6 +5,8 @@ import (
     "fmt"
     "net/http"
     "io"
+    // "io/ioutil"
+    // "time"
     // "net/http/httputil"
     // "net/url"
 )
@@ -17,26 +19,41 @@ func main() {
 
 func Handler(w http.ResponseWriter, req *http.Request) {
     fmt.Printf("URL: %s\n", req.URL)
-    fmt.Printf("RemoteAddr: %s\n", req.RemoteAddr)
-    fmt.Printf("RequestURI: %s\n", req.RequestURI)
 
-    // remove requesturi
-    resp, err := http.DefaultClient.Do(req)
-    defer resp.Body.Close()
+    o := new(http.Request)
+ 
+    *o = *req
+
+    o.Proto      = "HTTP/1.1" 
+    o.ProtoMajor = 1 
+    o.ProtoMinor = 1 
+    o.Close      = false 
+ 
+    transport := http.DefaultTransport
+ 
+    res, err := transport.RoundTrip(o)
+ 
     if err != nil {
-        panic(err)
+        log.Printf("http: proxy error: %v", err)
+        w.WriteHeader(http.StatusInternalServerError)
+        return 
     }
-
-    for k,v := range resp.Header {
-        for _, vv := range v {
-            w.Header().Add(k, vv)
+ 
+    hdr := w.Header()
+ 
+    for k, vv := range res.Header {
+        for _, v := range vv {
+            hdr.Add(k, v)
         }
     }
-
-    w.WriteHeader(resp.StatusCode)
-    result, err := ioutil.ReadAll(resp.Body)
-    if err != nil && err != io.EOF {
-        panic(err)
-    }
-    w.Write(result)
+ 
+    // for _, c := range res.SetCookie {
+    //     w.Header().Add("Set-Cookie", c.Raw)
+    // }
+ 
+    w.WriteHeader(res.StatusCode)
+ 
+    if res.Body != nil {
+        io.Copy(w, res.Body)
+    }    
 }
